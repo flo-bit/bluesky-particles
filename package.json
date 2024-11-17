@@ -1,0 +1,24 @@
+{
+  "name": "bluesky-particles",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/three": "^0.168.0",
+    "alea": "^1.0.1",
+    "prettier": "^3.3.3",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.166.1",
+    "uber-noise": "^0.2.1",
+    "vite": "^5.4.3",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.12"
+  }
+}
