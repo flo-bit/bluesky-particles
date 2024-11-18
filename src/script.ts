@@ -80,42 +80,56 @@ import ParticleSystem from "./particles";
   });
 
   // post-button
-  document.getElementById("post-button")?.addEventListener("click", () => {
+  const postButton = document.getElementById("post-button");
+  postButton?.addEventListener("click", () => {
     visible.post = !visible.post;
     if (visible.post) {
       postParticles.container.visible = true;
+      postButton.style.opacity = "1";
     } else {
       postParticles.container.visible = false;
+      postButton.style.opacity = "0.4";
     }
   });
 
   // like-button
-  document.getElementById("like-button")?.addEventListener("click", () => {
+  const likeButton = document.getElementById("like-button");
+  likeButton?.addEventListener("click", () => {
     visible.heart = !visible.heart;
     if (visible.heart) {
       heartParticles.container.visible = true;
+      likeButton.style.opacity = "1";
     } else {
       heartParticles.container.visible = false;
+      likeButton.style.opacity = "0.4";
     }
   });
 
   // follow-button
-  document.getElementById("follow-button")?.addEventListener("click", () => {
+  const followButton = document.getElementById("follow-button");
+  followButton?.addEventListener("click", () => {
     visible.follow = !visible.follow;
     if (visible.follow) {
       followParticles.container.visible = true;
+      followButton.style.opacity = "1";
     } else {
       followParticles.container.visible = false;
+      followButton.style.opacity = "0.4";
     }
   });
 
   // user-button
-  document.getElementById("user-button")?.addEventListener("click", () => {
+  const userButton = document.getElementById("user-button");
+  userButton?.addEventListener("click", () => {
     visible.user = !visible.user;
     if (visible.user) {
       userParticles.container.visible = true;
+      // set button opacity to 100%
+      userButton.style.opacity = "1";
     } else {
       userParticles.container.visible = false;
+      // set button opacity to 50%
+      userButton.style.opacity = "0.4";
     }
   });
 
