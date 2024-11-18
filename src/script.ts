@@ -20,10 +20,10 @@ app.canvas.style.position = "absolute";
 app.canvas.style.width = "100%";
 app.canvas.style.height = "100%";
 
-let heartParticles = new ParticleSystem("heart2.png");
-let postParticles = new ParticleSystem("post.png");
-let followParticles = new ParticleSystem("follow.png");
-let userParticles = new ParticleSystem("user.png");
+let heartParticles = new ParticleSystem("/bluesky-particles/heart2.png");
+let postParticles = new ParticleSystem("/bluesky-particles/post.png");
+let followParticles = new ParticleSystem("/bluesky-particles/follow.png");
+let userParticles = new ParticleSystem("/bluesky-particles/user.png");
 
 app.stage.addChild(followParticles.container);
 app.stage.addChild(heartParticles.container);
