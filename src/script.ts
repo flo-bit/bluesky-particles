@@ -1,10 +1,7 @@
 import * as PIXI from "pixi.js";
 import ParticleSystem from "./particles";
 
-console.log("hello there");
-
 (async () => {
-  console.log("hello there 2");
   let app = new PIXI.Application();
 
   let w = window.innerWidth,
@@ -16,16 +13,12 @@ console.log("hello there");
     height: h,
     antialias: true,
   });
-  console.log("hello there 3");
-
   document.body.appendChild(app.canvas);
 
   // set canvas to absolute position and full size
   app.canvas.style.position = "absolute";
   app.canvas.style.width = "100%";
   app.canvas.style.height = "100%";
-
-  console.log("hello there 4");
 
   let heartParticles = new ParticleSystem("/bluesky-particles/heart2.png");
   let postParticles = new ParticleSystem("/bluesky-particles/post.png");
@@ -38,8 +31,6 @@ console.log("hello there");
   app.stage.addChild(userParticles.container);
 
   let totalTime = 0;
-
-  console.log("hello there 5");
 
   function spawnParticle(type: "heart" | "post" | "follow" | "user") {
     let particleSystem;
@@ -72,7 +63,6 @@ console.log("hello there");
   };
 
   app.ticker.add((ticker) => {
-    console.log("update");
     // get ellapsed time
     const deltaTime = ticker.deltaMS * 0.001;
     totalTime += deltaTime;
