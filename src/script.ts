@@ -1,59 +1,125 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { Particles } from "./particles";
+import * as PIXI from "pixi.js";
+import ParticleSystem from "./particles";
+
+let app = new PIXI.Application();
+
+let w = window.innerWidth,
+  h = window.innerHeight;
+
+// set to full screen
+await app.init({
+  width: w,
+  height: h,
+  antialias: true,
+});
+
+document.body.appendChild(app.canvas);
+
+// set canvas to absolute position and full size
+app.canvas.style.position = "absolute";
+app.canvas.style.width = "100%";
+app.canvas.style.height = "100%";
+
+let heartParticles = new ParticleSystem("heart2.png");
+let postParticles = new ParticleSystem("post.png");
+let followParticles = new ParticleSystem("follow.png");
+let userParticles = new ParticleSystem("user.png");
+
+app.stage.addChild(followParticles.container);
+app.stage.addChild(heartParticles.container);
+app.stage.addChild(postParticles.container);
+app.stage.addChild(userParticles.container);
+
+let totalTime = 0;
+
+function spawnParticle(type: "heart" | "post" | "follow" | "user") {
+  let particleSystem;
+  if (type === "heart") {
+    particleSystem = heartParticles;
+  } else if (type === "post") {
+    particleSystem = postParticles;
+  } else if (type === "follow") {
+    particleSystem = followParticles;
+  } else if (type === "user") {
+    particleSystem = userParticles;
+  }
+  let top = true;
+  particleSystem.spawnParticle({
+    x: Math.random() * w,
+    y: top ? -50 : h + 50,
+    size: (Math.pow(Math.random(), 4) * 40 + 10) * (type === "user" ? 1.5 : 1),
+    maxAge: Math.random() * 10 + 4,
+    speedY: Math.random() * 150 * (top ? 1 : -1) + 50,
+    speedX: Math.random() * 10 - 5,
+  });
+}
+
+const visible = {
+  heart: true,
+  post: true,
+  follow: true,
+  user: true,
+};
+
+app.ticker.add((ticker) => {
+  // get ellapsed time
+  const deltaTime = ticker.deltaMS * 0.001;
+  totalTime += deltaTime;
+
+  heartParticles.update(deltaTime);
+  postParticles.update(deltaTime);
+  followParticles.update(deltaTime);
+  userParticles.update(deltaTime);
+});
+
+window.addEventListener("resize", () => {
+  w = window.innerWidth;
+  h = window.innerHeight;
+  app.renderer.resize(w, h);
+});
+
+// post-button
+document.getElementById("post-button")?.addEventListener("click", () => {
+  visible.post = !visible.post;
+  if (visible.post) {
+    postParticles.container.visible = true;
+  } else {
+    postParticles.container.visible = false;
+  }
+});
+
+// like-button
+document.getElementById("like-button")?.addEventListener("click", () => {
+  visible.heart = !visible.heart;
+  if (visible.heart) {
+    heartParticles.container.visible = true;
+  } else {
+    heartParticles.container.visible = false;
+  }
+});
+
+// follow-button
+document.getElementById("follow-button")?.addEventListener("click", () => {
+  visible.follow = !visible.follow;
+  if (visible.follow) {
+    followParticles.container.visible = true;
+  } else {
+    followParticles.container.visible = false;
+  }
+});
+
+// user-button
+document.getElementById("user-button")?.addEventListener("click", () => {
+  visible.user = !visible.user;
+  if (visible.user) {
+    userParticles.container.visible = true;
+  } else {
+    userParticles.container.visible = false;
+  }
+});
 
 const url =
   "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.like&wantedCollections=app.bsky.graph.follow";
-
-const width = window.innerWidth,
-  height = window.innerHeight;
-
-const canvas = document.getElementById("root");
-
-if (!canvas) {
-  throw new Error("Canvas not found");
-}
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 30);
-camera.position.set(0, 0, 2.5);
-
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  canvas,
-  alpha: true,
-});
-
-// basic tone mapping
-renderer.toneMapping = THREE.LinearToneMapping;
-renderer.shadowMap.enabled = true;
-
-const _ = new OrbitControls(camera, renderer.domElement);
-
-const particles = new Particles();
-scene.add(particles);
-
-let total = 0;
-let last = 0;
-
-renderer.setAnimationLoop((current) => {
-  renderer.render(scene, camera);
-
-  particles.update(current - last);
-
-  last = current;
-
-  //particles.spawn(Math.floor(Math.random() * 4) + 1);
-});
-
-function updateSize() {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-}
-
-updateSize();
-window.addEventListener("resize", updateSize);
 
 // WebSocket logic
 const ws = new WebSocket(url);
@@ -69,20 +135,20 @@ ws.onmessage = (event) => {
       json.commit.collection === "app.bsky.feed.post" &&
       json.commit.operation === "create"
     ) {
-      particles.spawn(1);
+      spawnParticle("post");
     } else if (
       json.commit.collection === "app.bsky.feed.like" &&
       json.commit.operation === "create"
     ) {
-      particles.spawn(2);
+      spawnParticle("heart");
     } else if (
       json.commit.collection === "app.bsky.graph.follow" &&
       json.commit.operation === "create"
     ) {
-      particles.spawn(3);
+      spawnParticle("follow");
     }
   } else if (json.kind === "account" && json.account.active) {
-    particles.spawn(4);
+    spawnParticle("user");
   }
 };
 

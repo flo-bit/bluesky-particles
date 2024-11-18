@@ -1,173 +1,109 @@
-import * as THREE from "three";
+import * as PIXI from "pixi.js";
 
-export type StarsOptions = {
-  particleCount: number;
-  minimumDistance: number;
-  maximumDistance: number;
+interface ParticleSprite extends PIXI.Sprite {
+  speedX: number;
+  speedY: number;
+  age: number;
+  maxAge: number;
+  initialSize: number;
+}
+
+export type ParticleOptions = {
+  x: number;
+  y: number;
+  size: number;
+  color: PIXI.ColorSource;
+  alpha: number;
+  speedX: number;
+  speedY: number;
+  maxAge: number;
 };
 
-const SPEED = 0.001;
+export default class ParticleSystem {
+  private app: PIXI.Application;
+  private maxParticles: number;
+  public container: PIXI.Container;
+  private particles: ParticleSprite[];
+  private particlePool: ParticleSprite[];
+  private baseTexture: PIXI.Texture;
 
-export class Particles extends THREE.Group {
-  private particleCount: number = 50000;
+  private loaded = false;
 
-  private minimumDistance: number = 10;
-  private maximumDistance: number = 20;
-
-  private positions: Float32Array;
-  private colors: Float32Array;
-  private velocities: Float32Array;
-  private alive: Float32Array;
-
-  private geometry: THREE.BufferGeometry;
-  private material: THREE.PointsMaterial;
-  private particles: THREE.Points;
-
-  private spawnPost: number = 0;
-  private spawnLike: number = 0;
-  private spawnFollow: number = 0;
-  private spawnNewUser: number = 0;
-
-  constructor(opts: Partial<StarsOptions> = {}) {
-    super();
-
-    this.particleCount = opts.particleCount ?? this.particleCount;
-    this.minimumDistance = opts.minimumDistance ?? this.minimumDistance;
-    this.maximumDistance = opts.maximumDistance ?? this.maximumDistance;
-
-    this.positions = new Float32Array(this.particleCount * 3);
-    this.colors = new Float32Array(this.particleCount * 3);
-    this.velocities = new Float32Array(this.particleCount * 3);
-    this.alive = new Float32Array(this.particleCount);
-    this.setupParticles();
+  constructor(texture: string, maxParticles: number = 10000) {
+    this.maxParticles = maxParticles;
+    this.container = new PIXI.Container();
+    this.container.zIndex = 10;
+    this.particles = [];
+    this.particlePool = [];
+    this.loadTexture(texture);
   }
 
-  private setupParticles() {
-    for (let i = 0; i < this.particleCount; i++) {
-      this.resetParticle(i, false);
-    }
-
-    this.geometry = new THREE.BufferGeometry();
-    this.geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(this.positions, 3),
-    );
-    this.geometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(this.colors, 3),
-    );
-
-    this.material = new THREE.PointsMaterial({
-      size: 0.04,
-      vertexColors: true,
-    });
-
-    this.particles = new THREE.Points(this.geometry, this.material);
-
-    this.add(this.particles);
+  async loadTexture(url: string) {
+    const texture = await PIXI.Assets.load(url);
+    this.baseTexture = texture;
+    this.loaded = true;
   }
 
-  spawn(color: number) {
-    if (color === 1) {
-      this.spawnPost += 1;
-    } else if (color === 2) {
-      this.spawnLike += 1;
-    } else if (color === 3) {
-      this.spawnFollow += 1;
+  spawnParticle(opts: Partial<ParticleOptions>): ParticleSprite | null {
+    if (!this.loaded) return null;
+    let particle: ParticleSprite;
+    if (this.particlePool.length > 0) {
+      particle = this.particlePool.pop()!;
+    } else if (this.particles.length < this.maxParticles) {
+      particle = new PIXI.Sprite(this.baseTexture) as ParticleSprite;
+      particle.anchor.set(0.5, 0.5);
+      this.container.addChild(particle);
     } else {
-      this.spawnNewUser += 1;
+      return null;
+    }
+
+    particle.rotation = (Math.random() - 0.5) * 0.5;
+    particle.visible = true;
+    particle.x = opts.x ?? 0;
+    particle.y = opts.y ?? 0;
+    particle.width = particle.height = opts.size ?? 1;
+    particle.tint = opts.color ?? 0xffffff;
+    particle.alpha = opts.alpha ?? 1;
+    particle.speedX = opts.speedX ?? 0;
+    particle.speedY = opts.speedY ?? 0;
+    particle.age = 0;
+    particle.maxAge = opts.maxAge ?? 1;
+    particle.initialSize = opts.size ?? 1;
+
+    this.particles.push(particle);
+
+    return particle;
+  }
+
+  removeParticle(particle: ParticleSprite): void {
+    const index = this.particles.indexOf(particle);
+    if (index !== -1) {
+      particle.visible = false;
+
+      this.particles.splice(index, 1);
+      this.particlePool.push(particle);
     }
   }
 
-  update(delta: number) {
-    for (let i = 0; i < this.particleCount; i++) {
-      if (this.alive[i] <= 0) {
-        if (this.spawnPost > 0) {
-          this.resetParticle(i, true, 1);
-          this.spawnPost--;
-        } else if (this.spawnLike > 0) {
-          this.resetParticle(i, true, 2);
-          this.spawnLike--;
-        } else if (this.spawnFollow > 0) {
-          this.resetParticle(i, true, 3);
-          this.spawnFollow--;
-        } else if (this.spawnNewUser > 0) {
-          this.resetParticle(i, true, 4);
-          this.spawnNewUser--;
-        }
-      }
+  update(deltaTime: number): void {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const particle = this.particles[i];
+      particle.x += particle.speedX * deltaTime;
+      particle.y += particle.speedY * deltaTime;
+      particle.age += deltaTime;
 
-      const index = i * 3;
-      this.positions[index] += this.velocities[index] * delta * SPEED;
-      this.positions[index + 1] += this.velocities[index + 1] * delta * SPEED;
-      this.positions[index + 2] += this.velocities[index + 2] * delta * SPEED;
+      // Shrink the particle
+      let lifeRatio = 1 - particle.age / particle.maxAge;
+      lifeRatio = Math.min(Math.max(lifeRatio, 0), 1);
+      particle.width = particle.height = particle.initialSize * lifeRatio;
 
-      this.alive[i] -= delta;
-
-      if (this.alive[i] <= 0) {
-        this.resetParticle(i, false);
+      // Remove particle if it's too old or off-screen
+      if (
+        particle.age >= particle.maxAge ||
+        particle.initialSize * lifeRatio < 4
+      ) {
+        this.removeParticle(particle);
       }
     }
-
-    if (
-      this.spawnPost > 0 ||
-      this.spawnLike > 0 ||
-      this.spawnFollow > 0 ||
-      this.spawnNewUser > 0
-    ) {
-      console.log("not enough particles");
-    }
-
-    this.geometry.attributes.position.needsUpdate = true;
-    // Need to mark colors as needing update too
-    this.geometry.attributes.color.needsUpdate = true;
-  }
-
-  private resetParticle(i: number, alive: boolean = true, color: number = 1) {
-    const index = i * 3;
-
-    let size = 10;
-    let angle = Math.random() * Math.PI * 2;
-    this.positions[index] = Math.cos(angle) * size;
-    this.positions[index + 1] = Math.sin(angle) * size;
-    this.positions[index + 2] = -10 + Math.random() * 9;
-
-    // posts are orange
-    if (color === 1) {
-      this.colors[index] = 0.97;
-      this.colors[index + 1] = 0.45;
-      this.colors[index + 2] = 0.08;
-    } else if (color === 2) {
-      // likes are pink
-      this.colors[index] = 0.85;
-      this.colors[index + 1] = 0.15;
-      this.colors[index + 2] = 0.46;
-    } else if (color === 3) {
-      // follows are cyan
-      this.colors[index] = 0.86;
-      this.colors[index + 1] = 0.14;
-      this.colors[index + 2] = 0.14;
-    } else {
-      this.colors[index] = 1;
-      this.colors[index + 1] = 1;
-      this.colors[index + 2] = 1;
-    }
-
-    if (!alive) {
-      this.colors[index] = 0;
-      this.colors[index + 1] = 0;
-      this.colors[index + 2] = 0;
-    }
-
-    let speed = Math.pow(Math.random(), 4) * 0.5 + 1;
-    let move = 0.4;
-
-    this.velocities[index] =
-      (-Math.cos(angle) + Math.random() * move - move / 2) * speed;
-    this.velocities[index + 1] =
-      (-Math.sin(angle) + Math.random() * move - move / 2) * speed;
-    this.velocities[index + 2] = Math.random() * move - move / 2;
-
-    this.alive[i] = alive ? 5000 : 0;
   }
 }
